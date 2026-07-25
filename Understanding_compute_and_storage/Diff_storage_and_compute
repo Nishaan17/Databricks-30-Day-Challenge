@@ -451,3 +451,22 @@ Photon
 Cluster sizing and cost optimization
 
 By the time you reach step 4, you'll have the same progression many engineers follow in real Databricks projects, moving from writing notebooks to designing and operating production data platforms.
+
+
+
+
+
+
+The easiest way to remember it
+Component	One-line explanation
+Storage Account	The place where data is stored.
+Container (raw)	A top-level folder inside the storage account.
+Access Connector	The identity Databricks uses to prove who it is.
+IAM Role (Storage Blob Data Contributor)	The permission that allows that identity to access the storage.
+Storage Credential	Tells Databricks which identity to use when accessing storage.
+External Location	Tells Databricks which storage path to access using that identity.
+A simple sentence that ties everything together
+
+The Access Connector provides the identity, the IAM role grants permission to that identity, the Storage Credential tells Databricks to use that identity, and the External Location combines the storage path with the credential so Spark can securely access files in ADLS.
+
+Once this clicks, you'll find that the same pattern is used not only with Azure but also with AWS (IAM Roles + S3) and Google Cloud (Service Accounts + GCS). It's a core cloud data engineering concept.
