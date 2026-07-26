@@ -1,0 +1,79 @@
+Excellent question. The answer is:
+
+Yes. Whether you use an Access Connector (Managed Identity) or a Service Principal, you still need an External Location if you're using Unity Catalog to access external storage.
+
+The authentication method changes, but the Unity Catalog objects stay the same.
+
+Option 1: Access Connector
+Databricks
+      │
+      ▼
+Access Connector
+      │
+Managed Identity
+      │
+IAM Role
+      │
+ADLS
+      │
+Storage Credential
+      │
+External Location
+      │
+External Table
+
+The Storage Credential stores the Managed Identity.
+
+Option 2: Service Principal
+Databricks
+      │
+      ▼
+Service Principal
+(Client ID + Secret)
+      │
+IAM Role
+      │
+ADLS
+      │
+Storage Credential
+      │
+External Location
+      │
+External Table
+
+The Storage Credential stores the Service Principal credentials instead.
+
+So what changes?
+
+Only the authentication mechanism.
+
+With Access Connector
+
+Storage Credential says:
+
+"Use this Managed Identity."
+
+With Service Principal
+
+Storage Credential says:
+
+"Use this Client ID, Client Secret, and Tenant ID."
+
+Everything after that is exactly the same.
+
+Why is External Location still needed?
+
+Because Databricks needs to know two things:
+
+How do I authenticate?
+Storage Credential
+Where is the data?
+External Location
+
+Think of it like this:
+
+Storage Credential = Who am I?
+
+External Location = Where should I go?
+
+Both are required.
