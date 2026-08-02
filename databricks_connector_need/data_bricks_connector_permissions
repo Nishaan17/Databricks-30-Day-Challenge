@@ -1,0 +1,17 @@
+1. You run a Spark query.
+
+2. Databricks needs to read data.
+
+3. Unity Catalog checks the External Table.
+
+4. The External Table points to an External Location.
+
+5. The External Location uses a Storage Credential.
+
+6. The Storage Credential uses the Access Connector.
+
+7. Azure verifies that the Access Connector has the
+   Storage Blob Data Contributor role.
+
+8. If authorized, Azure allows Databricks to read/write
+   data in ADLS Gen2.

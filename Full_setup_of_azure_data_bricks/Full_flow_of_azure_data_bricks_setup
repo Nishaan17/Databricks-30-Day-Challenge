@@ -1,0 +1,452 @@
+Excellent! 🎉 You've now completed a real-world Azure Databricks + ADLS Gen2 integration. This is exactly the kind of setup used in production environments.
+
+For your documentation, I recommend organizing it into four sections:
+
+Architecture (What are we building?)
+Azure Resource Creation (Infrastructure)
+Databricks Configuration (Connecting to Storage)
+Verification (Testing the Integration)
+End-to-End Architecture
+                   Azure Subscription
+                           │
+        ┌──────────────────┴──────────────────┐
+        │                                     │
+        ▼                                     ▼
+Azure Databricks Workspace          Storage Account (ADLS Gen2)
+                                            │
+                                            ▼
+                                      raw Container
+                                            ▲
+                                            │
+                              Storage Blob Data Contributor
+                                            ▲
+                                            │
+                      Access Connector (Managed Identity)
+                                            ▲
+                                            │
+                                 Storage Credential
+                                            ▲
+                                            │
+                                 External Location
+                                            ▲
+                                            │
+                                Databricks Notebook
+Step 1: Create a Resource Group
+What is a Resource Group?
+
+A Resource Group is a logical container that holds related Azure resources.
+
+Think of it like a project folder.
+
+Example:
+
+Project
+    ├── Databricks Workspace
+    ├── Storage Account
+    ├── Access Connector
+    └── Key Vault
+
+You created
+
+Databricks_explore
+
+Everything belongs inside this Resource Group.
+
+Step 2: Create Azure Databricks Workspace
+
+Portal
+
+Create Resource
+
+↓
+
+Azure Databricks
+
+Choose
+
+Workspace Name
+Region
+Pricing Tier
+
+Deploy.
+
+What is a Databricks Workspace?
+
+A Workspace is the web interface where developers
+
+write notebooks
+run Spark jobs
+create SQL warehouses
+manage Unity Catalog
+schedule jobs
+
+It does not store your data.
+
+It is only the compute and management environment.
+
+Think of it as VS Code running in the cloud.
+
+Step 3: Create Storage Account
+
+Portal
+
+Create Resource
+
+↓
+
+Storage Account
+
+Choose
+
+StorageV2
+
+Enable
+
+Hierarchical Namespace = YES
+
+This converts it into ADLS Gen2.
+
+Why enable Hierarchical Namespace?
+
+Without it
+
+Blob Storage
+
+With it
+
+Azure Data Lake Storage Gen2
+
+Databricks requires ADLS Gen2 for Unity Catalog External Locations.
+
+Step 4: Create Container
+
+Inside Storage Account
+
+Containers
+
+↓
+
+Create
+
+↓
+
+raw
+What is a Container?
+
+A Container is similar to
+
+an S3 Bucket (AWS)
+a folder at the top level
+
+Example
+
+Storage Account
+
+↓
+
+raw
+processed
+archive
+backup
+
+Each container holds files.
+
+Example
+
+raw
+
+↓
+
+employees.csv
+
+sales.csv
+
+customers.parquet
+Step 5: Create Access Connector
+
+Portal
+
+Create Resource
+
+↓
+
+Access Connector for Azure Databricks
+
+Enable
+
+System Assigned Identity
+What is an Access Connector?
+
+This is one of the most confusing concepts.
+
+Databricks cannot simply access your Storage Account.
+
+Azure must know who is requesting access.
+
+The Access Connector provides that identity.
+
+Without it
+
+Databricks
+
+↓
+
+Storage
+
+❌ Who are you?
+
+With it
+
+Databricks
+
+↓
+
+Access Connector
+
+↓
+
+"I am this Managed Identity."
+
+↓
+
+Storage
+
+It acts as the identity that Databricks uses to authenticate with Azure Storage.
+
+Step 6: Assign IAM Role
+
+Storage Account
+
+↓
+
+Access Control (IAM)
+
+↓
+
+Add Role Assignment
+
+Choose
+
+Storage Blob Data Contributor
+
+Assign it to
+
+Access Connector
+Why?
+
+Without permission
+
+Identity exists
+
+↓
+
+Storage
+
+↓
+
+Access Denied
+
+The role grants
+
+Read
+Write
+Delete
+List
+
+operations on blobs.
+
+Step 7: Create Storage Credential
+
+Inside Databricks
+
+Catalog
+
+↓
+
+Credentials
+
+↓
+
+Create Credential
+
+Choose
+
+Managed Identity
+
+Provide
+
+Access Connector Resource ID
+What is a Storage Credential?
+
+This tells Unity Catalog
+
+"When accessing Azure Storage, use this identity."
+
+It stores the authentication method.
+
+It does not store the storage path.
+
+Think of it like saving login credentials for later use.
+
+Step 8: Create External Location
+
+Catalog
+
+↓
+
+External Locations
+
+↓
+
+Create
+
+Provide
+
+abfss://raw@datalakenishaan.dfs.core.windows.net/
+
+Choose
+
+adls_credential
+What is an External Location?
+
+This maps
+
+Storage Credential
+Storage Path
+
+into a reusable object.
+
+Instead of writing
+
+abfss://raw@...
+
+everywhere,
+
+Databricks uses
+
+raw_location
+
+as a governed reference.
+
+Relationship:
+
+Storage Credential
+        +
+Storage Path
+        =
+External Location
+Step 9: Upload Files
+
+Azure Portal
+
+↓
+
+Storage Account
+
+↓
+
+Container
+
+↓
+
+Upload
+
+Example
+
+employees.csv
+Step 10: Read Files
+
+Notebook
+
+display(
+    dbutils.fs.ls(
+        "abfss://raw@datalakenishaan.dfs.core.windows.net/"
+    )
+)
+
+Output
+
+employees.csv
+
+sales.csv
+
+customers.csv
+Step 11: Read CSV
+df = spark.read.option("header", True).csv(
+    "abfss://raw@datalakenishaan.dfs.core.windows.net/employees.csv"
+)
+
+display(df)
+Understanding the Flow
+Notebook
+
+↓
+
+Spark
+
+↓
+
+Unity Catalog
+
+↓
+
+External Location
+
+↓
+
+Storage Credential
+
+↓
+
+Access Connector
+
+↓
+
+Azure AD Managed Identity
+
+↓
+
+Storage Account
+
+↓
+
+raw Container
+
+↓
+
+employees.csv
+Component Summary
+Component	Purpose
+Resource Group	Groups related Azure resources together
+Databricks Workspace	Development and execution environment for Spark workloads
+Storage Account (ADLS Gen2)	Stores data files and tables
+Container (raw)	Top-level storage location for files
+Access Connector	Managed Identity used by Databricks to authenticate with Azure
+IAM Role (Storage Blob Data Contributor)	Grants the Access Connector permission to read/write blobs
+Storage Credential	Unity Catalog object that defines how Databricks authenticates to storage
+External Location	Unity Catalog object that maps a storage path to a storage credential
+Notebook	Runs Spark code to read and process data
+Production Best Practices
+
+In a production data platform, you'll typically organize storage into layers such as:
+
+ADLS Gen2
+│
+├── raw/
+│   └── Source data as received
+│
+├── bronze/
+│   └── Minimal transformations
+│
+├── silver/
+│   └── Cleaned and validated data
+│
+├── gold/
+│   └── Business-ready, aggregated datasets
+│
+└── archive/
+    └── Historical backups and old files
+
+Databricks notebooks read from raw, transform the data through the Bronze → Silver → Gold layers, and Unity Catalog governs secure access throughout the process.
+
+This structure not only documents how to build the environment but also why each component exists, which makes it valuable for onboarding, interviews, and real-world reference.
